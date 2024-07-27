@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moose Laser Dodge</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <p>Lives: <span id="lives">3</span> | Score: <span id="score">0</span> | Level: <span id="level">1</span></p>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let moose = { x: 50, y: 200, width: 50, height: 50 };
+        let lasers = [];
+        let lives = 3;
+        let score = 0;
+        let level = 1;
+
+        const mooseImg = new Image();
+        mooseImg.src = 'moose.png';
+
+        mooseImg.onload = function() {
+            resetLevel();
+            setInterval(updateGame, 20);
+        };
+
+        function drawMoose() {
+            ctx.drawImage(mooseImg, moose.x, moose.y, moose.width, moose.height);
+        }
+
+        function drawLasers() {
+            lasers.forEach(laser => {
+                // Draw laser base
+                ctx.save();
+                ctx.translate(laser.x, laser.y);
+                ctx.rotate(laser.angle);
+                ctx.fillStyle = 'gray';
+                ctx.fillRect(-15, -15, 30, 30);
+                ctx.restore();
+
+                // Draw laser beam
+                if (laser.isOn && laser.beamLength > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(laser.x, laser.y);
+                    let endX = laser.x + Math.cos(laser.angle) * laser.beamLength;
+                    let endY = laser.y + Math.sin(laser.angle) * laser.beamLength;
+                    ctx.lineTo(endX, endY);
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function checkCollision() {
+            return lasers.some(laser => {
+                if (!laser.isOn || laser.beamLength === 0) return false;
+                let dx = moose.x + moose.width / 2 - laser.x;
+                let dy = moose.y + moose.height / 2 - laser.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                let angle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(angle - laser.angle);
+                return distance < laser.beamLength && angleDiff < 0.1;
+            });
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawMoose();
+            drawLasers();
+
+            // Update laser states
+            lasers.forEach(laser => {
+                if (laser.isOn) {
+                    laser.beamLength += 20;  // Laser travels at 20 pixels per frame
+                    if (laser.beamLength > 800) {
+                        laser.isOn = false;
+                        laser.beamLength = 0;
+                    }
+                } else if (Math.random() < 0.02) {  // 2% chance to start firing each frame
+                    laser.isOn = true;
+                    laser.beamLength = 0;
+                }
+                if (Math.random() < 0.01) {  // 1% chance to change angle each frame
+                    laser.angle += (Math.random() - 0.5) * Math.PI / 4;  // Rotate up to 45 degrees
+                }
+            });
+
+            if (checkCollision()) {
+                lives--;
+                moose.x = 50;
+                if (lives === 0) {
+                    alert('Game Over! Final Score: ' + score);
+                    resetGame();
+                }
+            }
+
+            if (moose.x > canvas.width - 2*moose.width) {
+                advanceLevel();
+            }
+
+            updateDisplay();
+        }
+
+        function advanceLevel() {
+            score += level;
+            level++;
+            resetLevel();
+            alert('Level ' + level + ' - Good job! Score: ' + score);
+        }
+
+        function resetLevel() {
+            moose.x = 50;
+            moose.y = canvas.height / 2 - moose.height / 2;
+            lasers = [];
+            for (let i = 0; i < level + 1; i++) {
+                lasers.push({ 
+                    x: Math.random() * (canvas.width - 200) + 200, 
+                    y: Math.random() * canvas.height,
+                    angle: Math.random() * Math.PI * 2,
+                    isOn: false,
+                    beamLength: 0
+                });
+            }
+        }
+
+        function resetGame() {
+            lives = 3;
+            score = 0;
+            level = 1;
+            resetLevel();
+        }
+
+        function updateDisplay() {
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (moose.y > 0) moose.y -= 10;
+                    break;
+                case 'ArrowDown':
+                    if (moose.y < canvas.height - moose.height) moose.y += 10;
+                    break;
+                case 'ArrowRight':
+                    if (moose.x < canvas.width - moose.width) moose.x += 10;
+                    break;
+                case 'ArrowLeft':
+                    if (moose.x > 0) moose.x -= 10;
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
