@@ -5,31 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moose Laser Dodge</title>
     <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
         canvas {
-            border: 1px solid black;
+            display: block;
+        }
+        #gameInfo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <p>Lives: <span id="lives">3</span> | Score: <span id="score">0</span> | Level: <span id="level">1</span></p>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameInfo">
+        Lives: <span id="lives">3</span> | Score: <span id="score">0</span> | Level: <span id="level">1</span>
+    </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        let moose = { x: 50, y: 200, width: 50, height: 50 };
-        let lasers = [];
-        let lives = 3;
-        let score = 0;
-        let level = 1;
+        let moose, lasers, lives, score, level;
 
         const mooseImg = new Image();
         mooseImg.src = 'moose.png';
 
         mooseImg.onload = function() {
-            resetLevel();
+            resizeCanvas();
+            resetGame();
             setInterval(updateGame, 20);
         };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            resetLevel();
+        });
 
         function drawMoose() {
             ctx.drawImage(mooseImg, moose.x, moose.y, moose.width, moose.height);
@@ -81,7 +106,7 @@
             lasers.forEach(laser => {
                 if (laser.isOn) {
                     laser.beamLength += 20;  // Laser travels at 20 pixels per frame
-                    if (laser.beamLength > 800) {
+                    if (laser.beamLength > canvas.width) {
                         laser.isOn = false;
                         laser.beamLength = 0;
                     }
@@ -103,7 +128,7 @@
                 }
             }
 
-            if (moose.x > canvas.width - 2*moose.width) {
+            if (moose.x > canvas.width - moose.width) {
                 advanceLevel();
             }
 
@@ -118,8 +143,12 @@
         }
 
         function resetLevel() {
-            moose.x = 50;
-            moose.y = canvas.height / 2 - moose.height / 2;
+            moose = {
+                x: 50,
+                y: canvas.height / 2,
+                width: canvas.width * 0.05,
+                height: canvas.width * 0.05
+            };
             lasers = [];
             for (let i = 0; i < level + 1; i++) {
                 lasers.push({ 
@@ -148,16 +177,16 @@
         document.addEventListener('keydown', (e) => {
             switch(e.key) {
                 case 'ArrowUp':
-                    if (moose.y > 0) moose.y -= 10;
+                    if (moose.y > 0) moose.y -= canvas.height * 0.02;
                     break;
                 case 'ArrowDown':
-                    if (moose.y < canvas.height - moose.height) moose.y += 10;
+                    if (moose.y < canvas.height - moose.height) moose.y += canvas.height * 0.02;
                     break;
                 case 'ArrowRight':
-                    if (moose.x < canvas.width - moose.width) moose.x += 10;
+                    if (moose.x < canvas.width - moose.width) moose.x += canvas.width * 0.02;
                     break;
                 case 'ArrowLeft':
-                    if (moose.x > 0) moose.x -= 10;
+                    if (moose.x > 0) moose.x -= canvas.width * 0.02;
                     break;
             }
         });
